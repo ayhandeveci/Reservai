@@ -7,7 +7,8 @@ import pandas as pd
 from core.io import load_input_data, normalize_triangle_like
 from core.guards import section_toggle, secure_delete
 from core.stats import run_basic_eda
-from core.prompts import prompt_tur1, prompt_tur2, prompt_tur3
+from core.export import export_tur1_excel, build_tur1_summary
+from core.prompts import prompt_tur1, prompt_tur2_from_excel, prompt_tur3
 from core.schemas import validate_json_output
 from core.viz import render_visuals
 from services.llm_client import call_llm
@@ -94,7 +95,8 @@ if active_2:
     if run2:
         with st.spinner("Tur-2: Öneriler hazırlanıyor..."):
             df_norm = st.session_state["tur1_df_norm"]
-            prompt2 = prompt_tur2(df_norm, st.session_state["tur1_out"])
+            excel_sum = tur1_excel_summary if tur1_excel_summary is not None else {"note": "excel not uploaded"}
+                prompt2 = prompt_tur2_from_excel(excel_sum, st.session_state["tur1_out"]["eda"])
             suggestions = None
             if api_key2:
                 suggestions = call_llm(api_key2, model2, prompt2)
@@ -102,7 +104,7 @@ if active_2:
             if not suggestions:
                 suggestions = {"notes": "LLM çağrısı yapılmadı; demo iskeleti.", "segments": [], "features": []}
             # JSON doğrulama (yumuşak)
-            suggestions = validate_json_output(suggestions, expected_keys=["notes","segments","features"])
+            suggestions = validate_json_output(suggestions, expected_keys=["methods","thresholds","workflow","notes"])
             st.session_state["tur2_out"] = suggestions
             st.success("Tur-2 tamamlandı ve çıktı kaydedildi.")
             with st.expander("Tur-2 Çıktısı (JSON)", expanded=False):

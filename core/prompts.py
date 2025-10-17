@@ -3,35 +3,40 @@ import json
 
 def prompt_tur1(eda_result: dict) -> str:
     return f"""
-    You are an actuarial assistant focusing on Kasko (Auto Hull) cumulative claims triangles.
-    Summarize the following EDA (JSON) briefly and highlight potential data-quality issues and
-    next-step analyses. Keep it under 150 words.
+    You are an actuarial assistant focusing on Auto Hull (Kasko) cumulative claims.
+    Summarize this EDA in <=150 words. Emphasize: shape, numeric totals, low-cardinality
+    segments, monotonicity, and material age-to-age signals.
     EDA_JSON:
     {json.dumps(eda_result, ensure_ascii=False)}
     """
 
-def prompt_tur2(df_norm, tur1_out) -> str:
-    sample = df_norm.head(25).to_dict(orient="records")
+def prompt_tur2_from_excel(excel_summary: dict, eda_result: dict) -> str:
     return f"""
-    You are an actuarial analyst. Based on the normalized cumulative claims data SAMPLE (first 25 rows)
-    and the prior EDA summary, propose:
-    - 3-6 segmentation ideas specific to Auto Hull (e.g., vehicle age bands, region, repair type),
-    - 3-6 additional features to engineer (e.g., inflation indices, part type mix),
-    - any data-quality/collection improvements.
-    Output valid JSON with keys: notes (string), segments (list), features (list).
-    SAMPLE_ROWS_JSON: {json.dumps(sample, ensure_ascii=False)}
-    EDA_JSON: {json.dumps(tur1_out, ensure_ascii=False)}
+    You are an actuarial data QA consultant. Given the dataset summary (from an Excel produced in Turn-1)
+    and the initial EDA, propose an OUTLIER analysis plan specifically for cumulative claims triangles.
+    Cover:
+    - pointwise outliers on incremental amounts (IQR/Tukey, z-score, robust MAD),
+    - outliers on age-to-age factors (IQR and robust methods),
+    - EVT/POT with Hill estimator for heavy tails (outline steps, threshold selection, diagnostics),
+    - time-dependence checks (AY/devQ structure),
+    - practical thresholds and step-by-step workflow.
+    Output JSON with keys: methods[], thresholds[], workflow[], notes.
+    EXCEL_SUMMARY_JSON: {json.dumps(excel_summary, ensure_ascii=False)}
+    EDA_JSON: {json.dumps(eda_result, ensure_ascii=False)}
     """
 
 def prompt_tur3(df_norm, tur1_out, tur2_out) -> str:
-    # We ask LLM for visualization spec, but we'll draw defaults regardless.
     sample = df_norm.head(50).to_dict(orient="records")
     return f"""
-    Act as a visualization planner for actuarial reporting.
-    Suggest a JSON visualization spec for 3-5 charts suitable for Auto Hull cumulative claims:
-    examples: AY dev curves, heatmap of age-to-age, paid vs incurred ratios by development quarter,
-    and open claims proxy (reported vs ultimate). Avoid long descriptions. 
-    Use keys: charts=[{{type, title, x, y, group, agg}}].
+    You are an actuarial analyst. From the suggested methods decide ONE applicable analysis and
+    produce a short plan (<=120 words) for visuals and interpretation. Prefer an analysis that can
+    be computed locally (e.g., IQR on age-to-age or incremental). Return JSON:
+    {{
+      "chosen_method": "<name>",
+      "reason": "<short>",
+      "visuals": ["<chart suggestion>", "..."],
+      "interpretation_focus": ["<bullets>"]
+    }}
     CONTEXT_TUR1={json.dumps(tur1_out, ensure_ascii=False)}
     CONTEXT_TUR2={json.dumps(tur2_out, ensure_ascii=False)}
     SAMPLE_ROWS={json.dumps(sample, ensure_ascii=False)}

@@ -18,3 +18,9 @@ streamlit run app.py
 
 **Örnek veri**
 - `assets/kasko_cumulative_claims_sample.csv`
+
+
+## Update
+- Tur-1: Excel raporu (çoklu sayfa + bar chart) ve indirme butonu eklendi.
+- Tur-2: Tur-1 Excel tekrar içeri alınabiliyor; LLM promptu outlier metodolojileri (IQR, z-score, MAD, EVT/Hill) için güncellendi.
+- Tur-3: IQR ile age-to-age outlier uygulaması ve görselleştirmesi eklendi.
